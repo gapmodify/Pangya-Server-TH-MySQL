@@ -1,0 +1,155 @@
+﻿using PangyaAPI;
+using PangyaAPI.BinaryModels;
+using PangyaAPI.Tools;
+using Connector.DataBase;
+using Game.Client;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+
+namespace Game.Lobby.Collection
+{
+    public class ChannelCollection : List<Channel>
+    {
+        public static ChannelCollection LobbyList { get; set; }
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public ChannelCollection(IniFile Ini)
+        {
+            byte i;
+            try
+            {
+                // Read from [Channel] section in Game.ini
+                var LobbyCount = Ini.ReadByte("Channel", "ChannelCount", 0);
+                
+                WriteConsole.WriteLine($"[CHANNEL_LOAD]: Reading {LobbyCount} channel(s) from Game.ini", ConsoleColor.Cyan);
+                
+                for (i = 1; i <= LobbyCount; i++)
+                {
+                    string name = Ini.ReadString("Channel", $"ChannelName_{i}", $"#Lobby {i}");
+                    ushort maxuser = Ini.ReadUInt16("Channel", $"ChannelMaxUser_{i}", 100);
+                    byte Id = Ini.ReadByte("Channel", $"ChannelID_{i}", i);
+                    uint flag = Ini.ReadUInt32("Channel", $"ChannelFlag_{i}", 2048);
+                    
+                    var lobby = new Channel(name, maxuser, Id, flag);    
+                    Add(lobby);
+                    
+                    WriteConsole.WriteLine($"[CHANNEL_LOAD]:   • {name} (ID:{Id}, MaxUser:{maxuser}, Flag:{flag})", ConsoleColor.White);
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteConsole.WriteLine($"[CHANNEL_LOAD_ERROR]: {ex.Message}", ConsoleColor.Red);
+            }
+            finally
+            {
+                if (Ini != null)
+                    Ini.Dispose();
+            }
+
+            WriteConsole.WriteLine($"[SERVER_SYSTEM_CHANNEL]: {Count} channel(s) loaded from Game.ini", ConsoleColor.Green);
+        }
+        public byte[] Build(bool IsBuild = false)
+        {
+            using (PangyaBinaryWriter Packet = new PangyaBinaryWriter())
+            {
+                if (IsBuild)
+                {
+                    Packet.Write(new byte[] { 0x4D, 0x00 });
+                }
+                Packet.WriteByte(Count);
+                for (int i = 0; i < Count; i++)
+                {
+                    Packet.Write(this[i].Build());
+                }
+                return Packet.GetBytes();
+            }
+        }
+
+        public byte[] GetBuildServerInfo()
+        {
+            using (var _db = DbContextFactory.Create())
+            {
+                // Query game server information
+                string sql = @"
+                    SELECT 
+                        serverid as ServerID,
+                        name as Name,
+                        ip as IP,
+                        port as Port,
+                        maxuser as MaxUser,
+                        usersonline as UsersOnline,
+                        property as Property,
+                        imgevent as ImgEvent,
+                        imgno as ImgNo
+                    FROM pangya_server
+                    WHERE active = 1 AND servertype = 1";
+                
+                var GameServer = _db.Database.SqlQuery<dynamic>(sql).ToList();
+                
+                using (var Response = new PangyaBinaryWriter())
+                {
+                    Response.Write(new byte[] { 0x9F, 0x00, Convert.ToByte(GameServer.Count) });
+                    foreach (var server in GameServer)
+                    {
+                        Response.WriteStr((string)(server.Name ?? ""), 40);
+                        Response.WriteUInt32((uint)(server.ServerID ?? 0));//server UID
+                        Response.WriteUInt32((uint)(server.MaxUser ?? 0)); //suporte maximo de jogadores no servidor simultaneamente
+                        Response.WriteUInt32((uint)(server.UsersOnline ?? 0)); //Total de jogadores no servidor atualmente ou simultaneamente(limitador)
+                        Response.WriteStr((string)(server.IP ?? ""), 18);
+                        Response.WriteUInt32((uint)(server.Port ?? 0));
+                        Response.WriteUInt32((uint)(server.Property ?? 0)); //imagem do grand prix 2048, manto 16               
+                        Response.WriteUInt32(0); //Angelic Number Count
+                        Response.WriteUInt16((ushort)(server.ImgEvent ?? 0));
+                        Response.WriteUInt16(126);
+                        Response.WriteUInt16(160);
+                        Response.WriteUInt16(100);//rate pang
+                        Response.WriteUInt16((ushort)(server.ImgNo ?? 0));
+                    }
+                    Response.Write(Build(false));               
+                    return Response.GetBytes();
+                }
+            }
+        }
+
+        public void HandleRemoveLobbyPlayer(GPlayer player)
+        {
+            this.FirstOrDefault(l => l.Players.ToList().Any(p => p?.GetUID == player.GetUID))?.Players?.ToList().Remove(player);
+        }
+        public void DestroyLobbies()
+        {
+            this.Clear();
+        }
+
+        public void ShowChannel()
+        {
+            foreach (var lobby in this)
+            {
+                WriteConsole.WriteLine($"[SHOW_LOBBY_INFO]: LobbyPlayers [{lobby.Players.Count}/{lobby.MaxPlayers}] LobbyID [{lobby.Id}] LobbyName [{lobby.Name}]", ConsoleColor.Green);
+            }
+        }
+
+        public Channel GetLobby(Channel lobby)
+        {
+            foreach (var result in this)
+            {
+                if (result.Id == lobby.Id)
+                {
+                    return result;
+                }
+            }
+            return null;
+        }
+        public Channel GetLobby(byte LobbyID)
+        {
+            foreach (var result in this)
+            {
+                if (result.Id == LobbyID)
+                {
+                    return result;
+                }
+            }
+            return null;
+        }
+    }
+}

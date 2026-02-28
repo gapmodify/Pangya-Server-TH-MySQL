@@ -1,0 +1,24 @@
+--------------------------- PLAYER_EXCEPTION ------------------------------------------
+Date: 21/2/2026 22:23:36
+Server_Info: NAME Pippin, ID 20201, PORT 20201
+MySql.Data.MySqlClient.MySqlStream+<ReadPacketAsync>d__30
+Method: Void MoveNext()
+Line: 0
+Column: 0
+--------------------------- END ------------------------------------------
+--------------------------- PLAYER_EXCEPTION ------------------------------------------
+Date: 21/2/2026 22:24:38
+Server_Info: NAME Pippin, ID 20201, PORT 20201
+MySql.Data.MySqlClient.MySqlStream+<ReadPacketAsync>d__30
+Method: Void MoveNext()
+Line: 0
+Column: 0
+--------------------------- END ------------------------------------------
+--------------------------- PLAYER_EXCEPTION ------------------------------------------
+Date: 23/2/2026 14:30:28
+Server_Info: NAME Pippin, ID 20201, PORT 20201
+System.ThrowHelper
+Method: Void ThrowInvalidOperationException(System.ExceptionResource)
+Line: 0
+Column: 0
+--------------------------- END ------------------------------------------
