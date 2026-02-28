@@ -1,5 +1,7 @@
 ﻿# Pangya Server S8 TH
 
+![Pangya Server S8 TH](docs/pangyaTH.png)
+
 > Project based on the Thai (TH) version of Pangya S8
 
 ## About

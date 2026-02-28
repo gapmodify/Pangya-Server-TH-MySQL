@@ -1,3 +1,5 @@
+File: .gitattributes
+````````
 ###############################################################################
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
@@ -37,12 +39,13 @@
 
 ###############################################################################
 # behavior for image files
-#
-# image files are treated as binary by default.
 ###############################################################################
-#*.jpg   binary
-#*.png   binary
-#*.gif   binary
+*.jpg    binary
+*.jpeg   binary
+*.png    binary
+*.gif    binary
+*.ico    binary
+*.webp   binary
 
 ###############################################################################
 # diff behavior for common document formats
